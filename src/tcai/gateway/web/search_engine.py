@@ -177,3 +177,4 @@ def search(query: str, count: int = 5) -> list[SearchResult]:
         return []
 
     return _parse_bing_html(response.text, count)
+
