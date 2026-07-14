@@ -275,3 +275,4 @@ class HttpClient:
 
 # Module-level singleton
 http_client = HttpClient()
+
