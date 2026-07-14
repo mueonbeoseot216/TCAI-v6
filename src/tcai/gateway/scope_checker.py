@@ -1,5 +1,5 @@
 """
-TCAI Gateway — scope checker.
+TCAI Gateway 鈥?scope checker.
 
 Validates that file paths are within allowed scopes.
 Blocks writes to C: drive and UNC paths; allows writes to non-system drives.
@@ -13,7 +13,7 @@ from . import logging_setup
 
 logger = logging_setup.get_logger(__name__)
 
-# C: drive block patterns — any write to these paths is blocked
+# C: drive block patterns 鈥?any write to these paths is blocked
 C_DRIVE_BLOCK_PATTERNS: list[str] = [
     r"C:\\Windows\\.*",
     r"C:\\Program Files\\.*",
@@ -23,7 +23,7 @@ C_DRIVE_BLOCK_PATTERNS: list[str] = [
     r"C:\\System Volume Information\\.*",
 ]
 
-# C: drive allowed paths — exceptions to the block (project root only)
+# C: drive allowed paths 鈥?exceptions to the block (project root only)
 C_DRIVE_ALLOWED: list[str] = []  # Populated dynamically from project root
 
 
@@ -35,7 +35,7 @@ def _get_allowed_patterns() -> list[str]:
     from .paths import PROJECT_ROOT
 
     root_str = str(PROJECT_ROOT.resolve())
-    C_DRIVE_ALLOWED.append(re.escape(root_str) + "\\\\.*")
+    C_DRIVE_ALLOWED[:] = [re.escape(root_str) + "\\\\.*"]
     return C_DRIVE_ALLOWED
 
 
@@ -43,10 +43,10 @@ def check_scope(path: str) -> tuple[bool, str]:
     """Check if a file path is within allowed write scope.
 
     Rules:
-      - UNC paths (\\...) → BLOCKED
-      - C: drive paths → BLOCKED (except project root)
-      - Other drives → ALLOWED
-      - Project root → ALLOWED
+      - UNC paths (\\...) 鈫?BLOCKED
+      - C: drive paths 鈫?BLOCKED (except project root)
+      - Other drives 鈫?ALLOWED
+      - Project root 鈫?ALLOWED
 
     Args:
         path: Absolute or relative file path.
@@ -60,7 +60,7 @@ def check_scope(path: str) -> tuple[bool, str]:
     if normalized.startswith("\\\\"):
         return False, "UNC network paths are blocked"
 
-    # Project root — always allowed
+    # Project root 鈥?always allowed
     allowed_patterns = _get_allowed_patterns()
     for pattern in allowed_patterns:
         if re.match(pattern, normalized, re.IGNORECASE):
@@ -74,7 +74,7 @@ def check_scope(path: str) -> tuple[bool, str]:
         # If it's on C: but not matching any block pattern, still block
         return False, f"C: drive writes are blocked (path: {path})"
 
-    # Other drives — allowed
+    # Other drives 鈥?allowed
     return True, "Non-system drive"
 
 
@@ -90,3 +90,4 @@ def normalize_path(path: str) -> str:
         from .paths import PROJECT_ROOT
         p = PROJECT_ROOT / p
     return str(p.resolve()).replace("/", "\\")
+
