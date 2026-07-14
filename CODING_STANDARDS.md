@@ -14,6 +14,20 @@ This document defines mandatory coding standards for all TCAI contributors.
 | Class | 200 | Security rule classes exempt |
 | Function | 50 | Pipeline orchestrators exempt with comment |
 
+**Exemption comment format**: place a `§1.1 exemption:` line inside the docstring.
+
+```python
+def enforce_write(...) -> dict[str, Any]:
+    """Run a write-tool operation through the full 6-step security pipeline.
+
+    §1.1 exemption: security pipeline orchestrator — coordinates 6 steps
+    spanning scope, deobfuscation, AST rules, circuit breaker, and dispatch.
+
+    Args:
+        ...
+    """
+```
+
 ### 1.2 Import Order (enforced by ruff)
 
 1. Standard library
@@ -76,6 +90,23 @@ Detailed description (optional, multi-line).
 8. Classes
 9. Functions (public → private)
 
+### 2.3 Toolchain
+
+Linting and formatting are enforced by **ruff**. Configuration lives in `pyproject.toml`
+under `[tool.ruff]`. Run before committing:
+
+```powershell
+.\tools\python-venv\python.exe -m ruff check src/
+.\tools\python-venv\python.exe -m ruff format --check src/
+```
+
+Type checking is **recommended** (not yet enforced in CI). Use mypy with the
+project's Python venv:
+
+```powershell
+.\tools\python-venv\python.exe -m mypy src/ --strict
+```
+
 ---
 
 ## 3. Comments
@@ -136,9 +167,13 @@ def execute_command(
 
 - ❌ Module-level mutable globals → use `SessionContext`
 - ❌ Mutable default arguments (`def foo(items=[])`)
-- ❌ Single-letter variables (except `i`, `j` loop indices)
+- ❌ Single-letter variables (except `i`, `j` loop indices, `f` for file objects, `e` for exception objects)
 - ❌ Magic numbers/strings inline → use `config.py` or module constant
 - ❌ Bare `*args`, `**kwargs` without type annotation
+
+> **Rationale for `f` and `e` exceptions**: `with open(...) as f` and
+> `except SomeError as e` are universal Python conventions. Using longer
+> names in these two patterns harms readability without adding clarity.
 
 ### 4.2 Prefer
 
@@ -180,7 +215,14 @@ def execute_command(
 
 - Prefer stdlib over third-party
 - Run `pip-audit` in CI to scan for vulnerabilities
-- Pin minimum versions, not exact versions
+- This project uses a vendored Python venv (`tools/python-venv/`).
+  When adding dependencies, pin exact versions in `pyproject.toml`:
+  ```toml
+  [project]
+  dependencies = ["requests>=2.31,<3", "pyyaml==6.0.1"]
+  ```
+  Use `>=minimum,<next_major` for libraries; `==exact` for tools whose
+  output must be reproducible (e.g. yaml, lxml).
 
 ---
 
@@ -234,8 +276,13 @@ TCAIError (base)
 ### 7.3 Error Propagation
 
 - Gateway layer: exceptions → `{"status": "error", "message": str}`
-- Agent layer: exceptions → user-readable message
+- Agent layer: exceptions → user-readable message (Chinese, since end users are internet cafe staff)
 - Never expose raw tracebacks to end users
+- Error messages for operators: concise Chinese, include actionable next step
+  ```
+  ❌ "KeyError: 'path'"
+  ✅ "无法读取注册表路径 HKEY_LOCAL_MACHINE\...，请确认该键值存在"
+  ```
 
 ---
 
@@ -271,6 +318,15 @@ def test_circuit_breaker_rate_limit_triggers():
 | Tool modules | 2 cases each (normal + error) |
 | Overall | 75% |
 
+**Enforcement** (target; not yet a CI gate):
+
+```powershell
+.\tools\python-venv\python.exe -m pytest tests/ --cov=src/tcai --cov-report=term --cov-fail-under=75
+```
+
+CI will adopt `--cov-fail-under` once the test suite reaches the target.
+Until then, coverage is informational.
+
 ### 8.4 Markers
 
 | Marker | Purpose | CI Trigger |
@@ -302,6 +358,20 @@ Scopes: `gateway`, `agent`, `tools`, `config`, `tests`, `docs`
 - `develop` — integration branch
 - `feat/<name>` — feature branches
 - `fix/<name>` — bugfix branches
+
+### 9.3 PR Review Checklist
+
+Before requesting review, confirm:
+
+- [ ] `ruff check` and `ruff format` pass
+- [ ] All imports in correct order (§1.2)
+- [ ] New functions have Google-style docstrings (§3.2) and type annotations (§3.4)
+- [ ] No single-letter variables except `i`, `j`, `f`, `e` (§4.1)
+- [ ] No magic numbers in new code — use named constants (§4.1)
+- [ ] Security-sensitive paths pass through `dlp.py` (§5.3)
+- [ ] No `except Exception: pass` (§7.2)
+- [ ] New tool modules have at least 2 test cases (§8.3)
+- [ ] Commit messages follow Conventional Commits (§9.1)
 
 ---
 
