@@ -404,3 +404,4 @@ def is_critical_process(name: str) -> bool:
 def is_critical_service(name: str) -> bool:
     """Check if a service name is in the critical protection list."""
     return name.lower() in CRITICAL_SERVICES
+
