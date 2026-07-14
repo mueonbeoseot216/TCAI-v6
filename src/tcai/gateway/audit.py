@@ -10,6 +10,7 @@ import json
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Any
+import re
 
 from .paths import AUDIT_LOG
 from . import logging_setup
@@ -155,6 +156,16 @@ def get_stats() -> dict[str, int]:
     return stats
 
 
+
+
+# Patterns for value-level sensitive data detection
+_SENSITIVE_VALUE_RE: re.Pattern[str] = re.compile(
+    r"(Bearer\s+[A-Za-z0-9._\-]{20,}|"
+    r"sk-[A-Za-z0-9]{20,}|"
+    r"[A-Za-z0-9+/=]{40,})",
+)
+
+
 def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     """Sanitize sensitive fields from params before logging.
 
@@ -169,7 +180,10 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
             safe[k] = "***"
         elif isinstance(v, str) and len(v) > 200:
             safe[k] = v[:197] + "..."
+        elif isinstance(v, str) and _SENSITIVE_VALUE_RE.search(v):
+            safe[k] = "***"
         else:
             safe[k] = v
 
     return safe
+
