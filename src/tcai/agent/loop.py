@@ -14,8 +14,7 @@ from .mcp_client import MCPClient
 from .prompt_engine import PromptEngine
 from .prompt_gate import PromptGate, ToolAdapter
 from .session import Session
-from .knowledge import KnowledgeBase
-
+from pathlib import Path
 
 class AgentLoop:
     """TCAI Agent main loop — LLM → tools → response.
@@ -31,14 +30,17 @@ class AgentLoop:
         gate: PromptGate,
         adapter: ToolAdapter,
         session: Session,
-        knowledge: KnowledgeBase,
+        knowledge_path: Path | None = None,
     ) -> None:
         self.mcp = mcp
         self.prompt = prompt_engine
         self.gate = gate
         self.adapter = adapter
         self.session = session
-        self.knowledge = knowledge
+        self._knowledge: KnowledgeBase | None = None
+        if knowledge_path:
+            from .knowledge import KnowledgeBase
+            self._knowledge = KnowledgeBase(knowledge_path)
 
         # Propagate session_id to MCP client for per-session isolation
         self.mcp._session_id = session.session_id
@@ -51,6 +53,22 @@ class AgentLoop:
 
     # ── Entry point ──
 
+    # ── Internal knowledge bridge ──
+
+    def _search_knowledge(self, query: str) -> list[dict]:
+        """Search knowledge base via internal bridge.
+
+        No query-language injection is possible because the
+        underlying engine (structured dict indexes) has no
+        special-character syntax.
+        """
+        if not self._knowledge:
+            return []
+        return self._knowledge.search(
+            query, limit=config.knowledge_search_limit,
+        )
+
+
     def run(self, user_input: str) -> str:
         """Process one user input, return AI response."""
         if not self.mcp.is_running:
@@ -62,7 +80,7 @@ class AgentLoop:
             self._load_tool_categories()
 
         # Pre-search knowledge base
-        hints = self.knowledge.search(user_input, limit=config.knowledge_search_limit)
+        hints = self._search_knowledge(user_input)
 
         # Build system prompt
         system_prompt = self.prompt.get_current(self.session, self.messages)
@@ -73,8 +91,8 @@ class AgentLoop:
 
         if hints:
             filtered_hints = []
-            for h in hints:
-                text = f"{h.get('title', '?')}: {h.get('snippet', h.get('content', ''))[:200]}"
+            for hint in hints:
+                text = f"{hint.get('title', '?')}: {hint.get('snippet', hint.get('content', ''))[:200]}"
                 result = injection_filter.filter_text(text, source="knowledge_base")
                 if not result["blocked"]:
                     filtered_hints.append(result["filtered_text"])
@@ -89,10 +107,16 @@ class AgentLoop:
                 )
                 user_input = hint_text + "\n\nUser question:\n" + user_input
 
-        self.messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_input},
-        ]
+        # Build messages with accumulated history
+        if not self.messages:
+            self.messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_input},
+            ]
+        else:
+            # Update system prompt, append user input
+            self.messages[0] = {"role": "system", "content": system_prompt}
+            self.messages.append({"role": "user", "content": user_input})
 
         # LLM loop: call → tool → result → repeat
         for _ in range(config.llm_max_retries):
@@ -106,6 +130,8 @@ class AgentLoop:
                 text = response.get("content", str(response))
                 self.session.log_conversation("operator", original_input)
                 self.session.log_conversation("tcai", text)
+                # Store assistant response for next turn
+                self.messages.append({"role": "assistant", "content": text})
                 return text
 
             # Execute tools
@@ -236,13 +262,13 @@ class AgentLoop:
         """Build OpenAI-compatible tool schemas from MCP tools."""
         tools = self.mcp.list_tools()
         schemas: list[dict] = []
-        for t in tools:
+        for tool in tools:
             schema = {
                 "type": "function",
                 "function": {
-                    "name": t["name"],
-                    "description": t.get("description", ""),
-                    "parameters": t.get("inputSchema", {}),
+                    "name": tool["name"],
+                    "description": tool.get("description", ""),
+                    "parameters": tool.get("inputSchema", {}),
                 },
             }
             schemas.append(schema)
@@ -256,3 +282,4 @@ class AgentLoop:
         self.mcp.reset_session()
         # Update session_id after reset
         self.mcp._session_id = self.session.session_id
+
