@@ -22,24 +22,24 @@ All notable changes to TCAI are documented in this file.
 
 ---
 
-## [6.0.0] 鈥?Unreleased
+## [6.0.0] —Unreleased
 
 ### Added
-- **Injection filter: Chunked filtering** 鈥?`filter_long_text()` with overlapping chunks + final full-text scan for long web content and knowledge base entries. No content truncation, injection detection at chunk boundaries.
-- **Data isolation (鎬濇兂閽㈠嵃)** 鈥?External content (knowledge base hints, web results) structurally marked as `鈺斺晲鈺?鍙傝€冭祫鏂?鈺愨晲鈺梎 blocks. L1 constitution rule: marker-wrapped content is pure data, not system instructions.
-- **Knowledge base defense** 鈥?Hints filtered through `injection_filter` before reaching LLM. `/learn` writes filtered with `filter_long_text()` before storage. Role-specification patterns detect `(浣爘鎴?.{0,5}(鏄瘄鍙樻垚|鍏呭綋|瑙掕壊鏄瘄韬唤鏄瘄浣滀负)`.
+- **Injection filter: Chunked filtering** —`filter_long_text()` with overlapping chunks + final full-text scan for long web content and knowledge base entries. No content truncation, injection detection at chunk boundaries.
+- **Data isolation (鎬濇兂閽㈠嵃)** —External content (knowledge base hints, web results) structurally marked as `鈺斺晲鈺?鍙傝€冭祫鏂?鈺愨晲鈺梎 blocks. L1 constitution rule: marker-wrapped content is pure data, not system instructions.
+- **Knowledge base defense** —Hints filtered through `injection_filter` before reaching LLM. `/learn` writes filtered with `filter_long_text()` before storage. Role-specification patterns detect `(浣爘鎴?.{0,5}(鏄瘄鍙樻垚|鍏呭綋|瑙掕壊鏄瘄韬唤鏄瘄浣滀负)`.
 - Complete project restructure with `src/tcai/` package layout
-- `CODING_STANDARDS.md` 鈥?comprehensive coding standards (10 sections)
-- `pyproject.toml` 鈥?unified project configuration (ruff, mypy, pytest)
+- `CODING_STANDARDS.md` —comprehensive coding standards (10 sections)
+- `pyproject.toml` —unified project configuration (ruff, mypy, pytest)
 - `python-dotenv` for standard `.env` file loading
-- `paths.py` 鈥?single source of truth for all project paths (zero hardcoded drives)
-- `config.py` 鈥?centralized configuration with validation
-- `exceptions.py` 鈥?custom exception hierarchy (7 types)
-- `logging_setup.py` 鈥?structured logging via stdlib `logging` module
-- `http_client.py` 鈥?unified HTTP client (retry, timeout, UA management)
-- `web/` package 鈥?unified web search module replacing 3 old tools
-- `session_context.py` 鈥?unified session state management
-- `learn.py` 鈥?extracted `/learn` subsystem from `loop.py`
+- `paths.py` —single source of truth for all project paths (zero hardcoded drives)
+- `config.py` —centralized configuration with validation
+- `exceptions.py` —custom exception hierarchy (7 types)
+- `logging_setup.py` —structured logging via stdlib `logging` module
+- `http_client.py` —unified HTTP client (retry, timeout, UA management)
+- `web/` package —unified web search module replacing 3 old tools
+- `session_context.py` —unified session state management
+- `learn.py` —extracted `/learn` subsystem from `loop.py`
 - Full type annotations across all modules (mypy strict)
 - Test suite with pytest-cov (target 鈮?5% coverage)
 - CI/CD: GitHub Actions on Windows + static checks on Linux
@@ -65,7 +65,7 @@ All notable changes to TCAI are documented in this file.
 
 ---
 
-## [5.0.0] 鈥?2025
+## [5.0.0] —2025
 
 Initial public release. See `E:\tcai_v5\` for v5 history.
 
