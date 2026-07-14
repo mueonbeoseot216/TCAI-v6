@@ -176,3 +176,4 @@ def log_security_event(
         **kwargs,
     }
     logger.log(level, message, extra=extra)
+
